@@ -1,6 +1,9 @@
 import requests
 import os 
 import datetime
+import database
+from models import Museo
+import pandas as pd 
 
 """
 Organizar los archivos en rutas siguiendo la siguiente estructura:
@@ -67,25 +70,8 @@ def guardar_archivo(respuesta_diccionario, categoria):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 if __name__ == '__main__':
-        
+        """
         categorias = {
 
             'bibliotecas':'https://datos.cultura.gob.ar/dataset/37305de4-3cce-4d4b-9d9a-fec3ca61d09f/resource/01c6c048-dbeb-44e0-8efa-6944f73715d7/download/11_bibliotecapopular-datos-abiertos.csv',
@@ -98,3 +84,14 @@ if __name__ == '__main__':
         for categoria, url in categorias.items():
             respuesta = descargar_archivo(url)
             guardar_archivo(respuesta, categoria)
+        """
+        #drop y crear base de datos
+        database.Base.metadata.drop_all(database.engine)
+        database.Base.metadata.create_all(database.engine)
+        
+
+        df = pd.read_csv('./museos/Abril-2024/museos-08-04-2024.csv')
+        columnas = ["nombre","direccion","piso","CP","cod_area","telefono","Mail","Web","Latitud","Longitud","TipoLatitudLongitud","Info_adicional","jurisdiccion","año_inauguracion","actualizacion"]
+        museos_df  = df[columnas]
+        prueba_df = museos_df.head()
+        prueba_df.to_sql('museos',con=database.engine, if_exists='replace', index=False)
