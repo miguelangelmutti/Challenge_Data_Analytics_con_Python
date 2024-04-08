@@ -93,5 +93,7 @@ if __name__ == '__main__':
         df = pd.read_csv('./museos/Abril-2024/museos-08-04-2024.csv')
         columnas = ["nombre","direccion","piso","CP","cod_area","telefono","Mail","Web","Latitud","Longitud","TipoLatitudLongitud","Info_adicional","jurisdiccion","año_inauguracion","actualizacion"]
         museos_df  = df[columnas]
-        prueba_df = museos_df.head()
-        prueba_df.to_sql('museos',con=database.engine, if_exists='replace', index=False)
+        museos_df  = museos_df.rename(columns={'año_inauguracion':'anio_inauguracion'})
+        #prueba_df = museos_df.head()
+        #prueba_df.to_sql('museos',con=database.engine, if_exists='append', index=False)
+        museos_df.to_sql('museos',con=database.engine, if_exists='append', index=False)
