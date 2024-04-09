@@ -103,7 +103,7 @@ def get_last_files_path():
 
 if __name__ == '__main__':
 
-    """
+            """
             categorias = {
 
                 'bibliotecas':'https://datos.cultura.gob.ar/dataset/37305de4-3cce-4d4b-9d9a-fec3ca61d09f/resource/01c6c048-dbeb-44e0-8efa-6944f73715d7/download/11_bibliotecapopular-datos-abiertos.csv',
@@ -118,8 +118,21 @@ if __name__ == '__main__':
                 guardar_archivo(respuesta, categoria)
             
             #drop y crear base de datos
-            database.Base.metadata.drop_all(database.engine)
-            database.Base.metadata.create_all(database.engine)
+            #database.Base.metadata.drop_all(database.engine)
+            #database.Base.metadata.create_all(database.engine)
+            """
+
+            #TODO Logeo de todo
+            #TODO drop database
+            #db.create_db()
+            
+            
+            #Borrar tabla
+            sql_stmt = db.read_sql("drop_table.sql")
+            db.ejecutar_sql(sql_stmt)
+            #Crear tabla
+            sql_stmt = db.read_sql("archivo.sql")
+            db.ejecutar_sql(sql_stmt)
             
 
             dict_ruta_archivos = get_last_files_path()
@@ -158,8 +171,3 @@ if __name__ == '__main__':
                     df.drop(['cod_area'], axis=1, inplace=True)
                 df['creado'] = datetime.datetime.now()
                 df.to_sql('espacios_culturales',con=database.engine, if_exists='append', index=False)
-                
-    """        
-    db.create_db()
-    sql_stmt = db.read_sql()
-    db.create_table(sql_stmt)

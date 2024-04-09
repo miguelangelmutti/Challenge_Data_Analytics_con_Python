@@ -25,7 +25,7 @@ def create_db():
 
     # "CREATE DATABASE" requires automatic commits
     conn.autocommit = True
-    sql_query = f"CREATE DATABASE Challenge_Data_Analytics_con_Python_2;"
+    sql_query = f"CREATE DATABASE Challenge_Data_Analytics_con_Python;"
 
     try:
         cur.execute(sql_query)
@@ -36,12 +36,13 @@ def create_db():
     else:
         # Revert autocommit settings
         conn.autocommit = False
+        cur.close()
 
-def create_table(sql_query) :
+def ejecutar_sql(sql_query) :
     conn = psycopg2.connect(
         host=host,
         port=port,
-        database='challenge_data_analytics_con_python_2',
+        database='challenge_data_analytics_con_python',
         user=user,
         password=password,
     )
@@ -57,10 +58,14 @@ def create_table(sql_query) :
     else:
         # To take effect, changes need be committed to the database
         conn.commit()
+        cur.close()
 
-def read_sql():
+
+
+
+def read_sql(archivo_sql):
         try:
-            with open("archivo.sql", "r") as f:
+            with open(archivo_sql, "r") as f:
                 sql = f.read()
                 return sql
         except Exception as e:

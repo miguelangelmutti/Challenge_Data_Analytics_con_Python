@@ -1,5 +1,5 @@
-CREATE TABLE public.espacios_culturales_2 (
-    id integer NOT NULL, 
+CREATE TABLE public.espacios_culturales (
+    id SERIAL PRIMARY KEY,
     cod_localidad integer, 
     id_provincia integer, 
     id_departamento integer, 
