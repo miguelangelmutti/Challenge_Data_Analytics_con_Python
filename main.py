@@ -2,7 +2,7 @@ import requests
 import os 
 import datetime
 import database
-from models import Museo
+from models import EspacioCultural
 import pandas as pd 
 
 """
@@ -68,10 +68,40 @@ def guardar_archivo(respuesta_diccionario, categoria):
     print(f"Descarga completada: {respuesta.status_code}")
 
 
+def get_last_files_path():
+    rootdirs = ['./bibliotecas', './cines', './museos']
+    data = []
+    files_path = []
+
+    for rootdir in rootdirs:
+        for subdir, dirs, files in os.walk(rootdir):
+            for file in files:
+                #print(os.path.join(subdir, file))
+                fecha = os.path.getmtime(os.path.join(subdir, file))
+                dt = datetime.datetime.fromtimestamp(fecha)
+                data.append({'categoria':rootdir.replace('./',''), 'archivo':file,'ruta':os.path.join(subdir, file), 'fecha_modif': dt})
+
+    df = pd.DataFrame.from_dict(data)
+    series_max_fecha_modif = df.groupby('categoria')['fecha_modif'].max()
+    df_max_fecha_modif = pd.DataFrame(series_max_fecha_modif)
+    df_max_fecha_modif = df_max_fecha_modif.rename(columns={'fecha_modif':'fecha_modif_max'})
+
+    # Unir los DataFrames por la columna 'categoria'
+    df_unido = df.merge(df_max_fecha_modif, on='categoria', how='inner')
+
+    # Filtrar por la fecha máxima
+    df_filtrado = df_unido[df_unido['fecha_modif'] == df_unido['fecha_modif_max']]
+
+    # Visualizar el resultado
+    for ind in df_filtrado.index:
+        files_path.append({'categoria':df_filtrado['categoria'][ind] ,'ruta':df_filtrado['ruta'][ind]})
+
+    return files_path
+
 
 
 if __name__ == '__main__':
-        """
+        
         categorias = {
 
             'bibliotecas':'https://datos.cultura.gob.ar/dataset/37305de4-3cce-4d4b-9d9a-fec3ca61d09f/resource/01c6c048-dbeb-44e0-8efa-6944f73715d7/download/11_bibliotecapopular-datos-abiertos.csv',
@@ -84,16 +114,39 @@ if __name__ == '__main__':
         for categoria, url in categorias.items():
             respuesta = descargar_archivo(url)
             guardar_archivo(respuesta, categoria)
-        """
+        
         #drop y crear base de datos
         database.Base.metadata.drop_all(database.engine)
         database.Base.metadata.create_all(database.engine)
         
 
-        df = pd.read_csv('./museos/Abril-2024/museos-08-04-2024.csv')
-        columnas = ["nombre","direccion","piso","CP","cod_area","telefono","Mail","Web","Latitud","Longitud","TipoLatitudLongitud","Info_adicional","jurisdiccion","año_inauguracion","actualizacion"]
-        museos_df  = df[columnas]
-        museos_df  = museos_df.rename(columns={'año_inauguracion':'anio_inauguracion'})
-        #prueba_df = museos_df.head()
-        #prueba_df.to_sql('museos',con=database.engine, if_exists='append', index=False)
-        museos_df.to_sql('museos',con=database.engine, if_exists='append', index=False)
+        dict_ruta_archivos = get_last_files_path()
+
+        for ruta_archivo in dict_ruta_archivos:
+            if ruta_archivo['categoria'] in ('bibliotecas','museos'):
+                if ruta_archivo['categoria'] == 'museos':
+                    dict_cast = {'cod_area': 'object'}
+                    columnas_seleccionadas = ["Cod_Loc","IdProvincia","IdDepartamento","categoria","provincia","localidad","nombre","direccion","CP","cod_area","telefono","Mail","Web"]
+                    columnas_reemplazo = {"Cod_Loc":'cod_localidad',
+                                                    "IdProvincia":'id_provincia',
+                                                    "IdDepartamento":'id_departamento',
+                                                    "direccion":'domicilio',
+                                                    "CP":'cp',
+                                                    "Mail":'mail',
+                                                    "Web":'web'
+                                                    }
+                elif ruta_archivo['categoria'] == 'bibliotecas':
+                     dict_cast = {'cod_tel': 'object', 'telefono':'object'}
+                     columnas_seleccionadas = ["cod_localidad","id_provincia","id_departamento","categoria","provincia","localidad","nombre","domicilio","cp","cod_tel","telefono","mail","web"]
+                     columnas_reemplazo = {"cod_tel":'cod_area'}
+                else:
+                    pass
+                df = pd.read_csv(ruta_archivo['ruta'],dtype=dict_cast)
+                df = df[columnas_seleccionadas]
+                df = df.rename(columns= columnas_reemplazo)
+                df['telefono'] = df['cod_area'] + '-' + df['telefono']
+                df.drop(['cod_area'], axis=1, inplace=True)
+                df['creado'] = datetime.datetime.now()
+                df.to_sql('espacios_culturales',con=database.engine, if_exists='append', index=False)
+            
+
