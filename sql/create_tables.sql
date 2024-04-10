@@ -14,3 +14,15 @@ CREATE TABLE public.espacios_culturales (
     web character varying(200), 
     creado timestamp without time zone
 );
+
+CREATE TABLE public.cines(
+Provincia character varying(200),
+Cant_pantallas integer, 
+Cant_butacas integer, 
+Cant_espacios_INCAA integer
+);
+
+CREATE TABLE public.indicadores(
+descripcion character varying(200),
+Cant_registros integer
+);

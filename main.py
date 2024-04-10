@@ -1,19 +1,8 @@
 import requests
 import os 
 import datetime
-import database
-import db 
-from models import EspacioCultural, Cine
+import db
 import pandas as pd 
-
-"""
-Organizar los archivos en rutas siguiendo la siguiente estructura:
-“categoría\año-mes\categoria-dia-mes-año.csv”
-○ Por ejemplo: “museos\2021-noviembre\museos-03-11-2021”
-○ Si el archivo existe debe reemplazarse. La fecha de la nomenclatura
-es la fecha de descarga.
-
-"""
 
 
 def get_fechas_string(tipo):
@@ -127,12 +116,17 @@ if __name__ == '__main__':
             #db.create_db()
             
             
-            #Borrar tabla
-            sql_stmt = db.read_sql("drop_table.sql")
-            db.ejecutar_sql(sql_stmt)
-            #Crear tabla
-            sql_stmt = db.read_sql("archivo.sql")
-            db.ejecutar_sql(sql_stmt)
+            conn_info = db.load_connection_info()
+            db.drop_db(conn_info)
+            db.create_db(conn_info)
+            
+            #drop table
+            drop_table = db.read_sql('./sql/drop_table.sql')
+            db.execute_sql(conn_info,drop_table)
+
+            #create table espacios_culturales
+            create_tables = db.read_sql('./sql/create_tables.sql')
+            db.execute_sql(conn_info, create_tables)
             
 
             dict_ruta_archivos = get_last_files_path()
@@ -170,4 +164,4 @@ if __name__ == '__main__':
                     df['telefono'] = df['cod_area'] + '-' + df['telefono']
                     df.drop(['cod_area'], axis=1, inplace=True)
                 df['creado'] = datetime.datetime.now()
-                df.to_sql('espacios_culturales',con=database.engine, if_exists='append', index=False)
+                df.to_sql('espacios_culturales',con=db.get_db_engine(conn_info), if_exists='append', index=False)
