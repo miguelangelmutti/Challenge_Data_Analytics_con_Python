@@ -1,6 +1,7 @@
 import os
 import datetime
 import pandas as pd
+import db 
 
 def get_last_files_path():
     rootdirs = ['./bibliotecas', './cines', './museos']
@@ -33,10 +34,19 @@ def get_last_files_path():
     return files_path
 
 if __name__ == '__main__':
+  columnas_reemplazo = {"direccion":'domicilio'}
 
-    paths = get_last_files_path()
-    for path in paths:
-        print(path['categoria'])
-
-    
-    
+  df = pd.read_csv('./cines/Abril-2024/cines-09-04-2024.csv')                
+  df = df.rename(columns= columnas_reemplazo)
+  df['telefono'] = None
+  df['mail'] = None
+  s_pantallas = df.groupby('provincia')['pantallas'].sum()
+  s_butacas = df.groupby('provincia')['butacas'].sum()
+  s_espacios_incaa = df.groupby('provincia')['espacio_incaa'].value_counts().unstack(fill_value=0)['Si']
+  #print(s)
+  df_cines = pd.DataFrame({'provincia': s_pantallas.index.tolist(),
+                           'Cant_pantallas':s_pantallas,
+                           'Cant_butacas':s_butacas,
+                           'Cant_espacios_INCAA':s_espacios_incaa}).reset_index(drop=True)
+  
+  

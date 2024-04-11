@@ -91,8 +91,7 @@ def get_last_files_path():
 
 
 if __name__ == '__main__':
-
-            """
+            
             categorias = {
 
                 'bibliotecas':'https://datos.cultura.gob.ar/dataset/37305de4-3cce-4d4b-9d9a-fec3ca61d09f/resource/01c6c048-dbeb-44e0-8efa-6944f73715d7/download/11_bibliotecapopular-datos-abiertos.csv',
@@ -106,14 +105,9 @@ if __name__ == '__main__':
                 respuesta = descargar_archivo(url)
                 guardar_archivo(respuesta, categoria)
             
-            #drop y crear base de datos
-            #database.Base.metadata.drop_all(database.engine)
-            #database.Base.metadata.create_all(database.engine)
-            """
+            
 
-            #TODO Logeo de todo
-            #TODO drop database
-            #db.create_db()
+            #TODO Logeo de todo                        
             
             
             conn_info = db.load_connection_info()
@@ -121,21 +115,21 @@ if __name__ == '__main__':
             db.create_db(conn_info)
             
             #drop table
-            drop_table = db.read_sql('./sql/drop_table.sql')
+            drop_table = db.read_sql('./sql/drop_tables.sql')
             db.execute_sql(conn_info,drop_table)
 
             #create table espacios_culturales
             create_tables = db.read_sql('./sql/create_tables.sql')
             db.execute_sql(conn_info, create_tables)
             
+            engine = db.get_db_engine(conn_info)
 
             dict_ruta_archivos = get_last_files_path()
 
             for ruta_archivo in dict_ruta_archivos:
                 if ruta_archivo['categoria'] in ('bibliotecas','museos'):
                     if ruta_archivo['categoria'] == 'museos':
-                        dict_cast = {'cod_area': 'object'}
-                        columnas_seleccionadas = ["Cod_Loc","IdProvincia","IdDepartamento","categoria","provincia","localidad","nombre","direccion","CP","cod_area","telefono","Mail","Web"]
+                        dict_cast = {'cod_area': 'object'}                        
                         columnas_reemplazo = {"Cod_Loc":'cod_localidad',
                                                         "IdProvincia":'id_provincia',
                                                         "IdDepartamento":'id_departamento',
@@ -145,23 +139,49 @@ if __name__ == '__main__':
                                                         "Web":'web'
                                                         }
                     elif ruta_archivo['categoria'] == 'bibliotecas':
-                        dict_cast = {'cod_tel': 'object', 'telefono':'object'}
-                        columnas_seleccionadas = ["cod_localidad","id_provincia","id_departamento","categoria","provincia","localidad","nombre","domicilio","cp","cod_tel","telefono","mail","web"]
+                        dict_cast = {'cod_tel': 'object', 'telefono':'object'}                        
                         columnas_reemplazo = {"cod_tel":'cod_area'}
                     else:
                         pass
                 else:
-                    columnas_seleccionadas_cine = ["cod_localidad","id_provincia","id_departamento","categoria","provincia","localidad","nombre","direccion","cp","web","fuente","sector","pantallas","butacas","espacio_incaa"]
-                    columnas_seleccionadas = ["cod_localidad","id_provincia","id_departamento","categoria","provincia","localidad","nombre","direccion","cp","web"]
+                    columnas_seleccionadas_cine = ["cod_localidad","id_provincia","id_departamento","categoria","provincia","localidad","nombre","direccion","cp","web","fuente","sector","pantallas","butacas","espacio_incaa"]                    
                     columnas_reemplazo = {"direccion":'domicilio'}
-                    
-                df = pd.read_csv(ruta_archivo['ruta'],dtype=dict_cast)
-                df = df[columnas_seleccionadas]
+
+                columnas_seleccionadas = ["cod_localidad","id_provincia","id_departamento","categoria","provincia","localidad","nombre","domicilio","cp","telefono","mail","web"]
+                df = pd.read_csv(ruta_archivo['ruta'],dtype=dict_cast)                
                 df = df.rename(columns= columnas_reemplazo)
                 if ruta_archivo['categoria'] == 'cines':
                     df['telefono'] = None
+                    df['mail'] = None
+                    s_pantallas = df.groupby('provincia')['pantallas'].sum()
+                    s_butacas = df.groupby('provincia')['butacas'].sum()
+                    s_espacios_incaa = df.groupby('provincia')['espacio_incaa'].value_counts().unstack(fill_value=0)['Si']
+                    df_cines = pd.DataFrame({'provincia': s_pantallas.index.tolist(),
+                                            'cant_pantallas':s_pantallas,
+                                            'cant_butacas':s_butacas,
+                                            'cant_espacios_incaa':s_espacios_incaa}).reset_index(drop=True)
+                    df_cines.to_sql('cines',con=engine, if_exists='append', index=False)
                 else:
                     df['telefono'] = df['cod_area'] + '-' + df['telefono']
                     df.drop(['cod_area'], axis=1, inplace=True)
-                df['creado'] = datetime.datetime.now()
-                df.to_sql('espacios_culturales',con=db.get_db_engine(conn_info), if_exists='append', index=False)
+                df = df[columnas_seleccionadas]
+                df['creado'] = datetime.datetime.now()                
+                df.to_sql('espacios_culturales',con=engine, if_exists='append', index=False)
+            
+            #indicadores
+            df = pd.read_sql_table(table_name='espacios_culturales', con=engine)
+            s1 = df.groupby('categoria')['categoria'].count()
+            s2 = df.groupby(['categoria','provincia'])['categoria'].count()    
+            s3 = pd.concat([s1, s2])    
+            lista_indice = s3.index.tolist()
+            for i in range(len(lista_indice)):
+                str_tuple = str(lista_indice[i])
+                lista_indice[i] = str_tuple.replace("'","").replace("(","").replace(")", "")
+            s3.index = lista_indice                
+            df_indicadores = pd.DataFrame({'descripcion': s3.index.tolist(),
+                            'cant_registros':s3},
+                            ).reset_index(drop=True)
+            df_indicadores.to_sql('indicadores',con=engine, if_exists='append', index=False)
+
+
+

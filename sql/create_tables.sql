@@ -16,10 +16,10 @@ CREATE TABLE public.espacios_culturales (
 );
 
 CREATE TABLE public.cines(
-Provincia character varying(200),
-Cant_pantallas integer, 
-Cant_butacas integer, 
-Cant_espacios_INCAA integer
+provincia character varying(200),
+cant_pantallas integer, 
+cant_butacas integer, 
+cant_espacios_incaa integer
 );
 
 CREATE TABLE public.indicadores(
