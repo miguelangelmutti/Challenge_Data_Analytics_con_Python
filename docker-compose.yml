@@ -1,0 +1,45 @@
+services:
+  postgresdb:
+    image: postgres:14-alpine
+    ports:
+      - "5432:5432"  # Mapea el puerto 5432 del contenedor al puerto 5432 del host
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=postgres  # Define la contraseña de la base de datos
+      - POSTGRES_USER=postgres  # Define el usuario de la base de datos
+      - POSTGRES_DB=postgres  # Define el nombre de la base de datos
+    networks:
+      - postgres
+  pgadmin:
+    container_name: pgadmin_container
+    image: dpage/pgadmin4:6.8
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin@pgadmin.org}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    depends_on:
+      - postgresdb
+    networks:
+      - postgres
+    restart: unless-stopped
+  app:
+    build: . 
+    volumes:
+      - ./tmp:/home/miguehp/Documentos/Challenge_Data_Analytics_con_Python_Docker/app/tmp/
+    networks:
+      - postgres
+    ports:
+      - "80:80"
+    depends_on:
+      - postgresdb
+
+volumes:
+  dbdata:
+  pgadmin:  
+networks:
+  postgres:

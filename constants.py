@@ -1,6 +1,6 @@
 from pathlib import Path
 
-BASE_FILE_DIR = Path("/tmp")
+BASE_FILE_DIR = Path().resolve() / 'tmp'
 #ROOT_DIR = Path().resolve().parent
 ROOT_DIR = Path().resolve()
 SQL_DIR = ROOT_DIR / "challenge/sql"

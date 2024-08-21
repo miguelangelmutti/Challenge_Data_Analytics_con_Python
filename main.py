@@ -4,7 +4,7 @@ import datetime
 import db
 import pandas as pd
 from cfg import categorias
-
+from constants import BASE_FILE_DIR
 
 def get_fechas_string(tipo):
     
@@ -43,9 +43,9 @@ def crear_carpetas(categorias):
             os.makedirs(new_path)
     
 
-def descargar_archivo(url):
-    respuesta = requests.get(url)
-    nombre = url.split('/')[-1::][0].split('.csv')[0]
+def descargar_archivo(categoria):
+    respuesta = requests.get(categoria["url"])
+    nombre = categoria["name"]
     respuesta_diccionario = {"nombre" : nombre, "respuesta": respuesta}
     return respuesta_diccionario 
 
@@ -53,10 +53,15 @@ def guardar_archivo(respuesta_diccionario, categoria):
     respuesta = respuesta_diccionario["respuesta"]
     nombre = categoria + "-" + get_fechas_string(2)
     periodo = get_fechas_string(1)
-    ruta_al_archivo = f"{categoria}/{periodo}/{nombre}.csv"
+
+    ruta_al_archivo = BASE_FILE_DIR / f"{categoria}/{periodo}/{nombre}.csv"
+    ruta_al_archivo.parent.mkdir(parents=True, exist_ok=True)
+
     with open(ruta_al_archivo, "wb") as archivo:
         archivo.write(respuesta.content)
-    print(f"Descarga completada: {respuesta.status_code}")
+    #print(f"Descarga completada: {respuesta.status_code}")
+    print('archivo guardado en '+ str(ruta_al_archivo))
+    return {'categoria': categoria, 'ruta': ruta_al_archivo}
 
 
 def get_last_files_path():
@@ -93,20 +98,11 @@ def get_last_files_path():
 
 if __name__ == '__main__':
             
-            """
-            categorias = {
-
-                'bibliotecas':'https://datos.cultura.gob.ar/dataset/37305de4-3cce-4d4b-9d9a-fec3ca61d09f/resource/01c6c048-dbeb-44e0-8efa-6944f73715d7/download/11_bibliotecapopular-datos-abiertos.csv',
-                'museos': 'https://datos.cultura.gob.ar/dataset/37305de4-3cce-4d4b-9d9a-fec3ca61d09f/resource/4207def0-2ff7-41d5-9095-d42ae8207a5d/download/museos_datosabiertos.csv',
-                'cines': 'https://datos.cultura.gob.ar/dataset/37305de4-3cce-4d4b-9d9a-fec3ca61d09f/resource/f7a8edb8-9208-41b0-8f19-d72811dcea97/download/salas_cine.csv'
-            }
-            """
-
-            crear_carpetas(categorias)
+            #crear_carpetas(categorias)
             
-            for categoria in categorias:                                
-                respuesta = descargar_archivo(categoria["url"])
-                guardar_archivo(respuesta, categoria["name"])
+            #for categoria in categorias:                                
+            #    respuesta = descargar_archivo(categoria)
+            #    guardar_archivo(respuesta, categoria["name"])
             
             
 
@@ -127,9 +123,15 @@ if __name__ == '__main__':
             
             engine = db.get_db_engine(conn_info)
 
-            dict_ruta_archivos = get_last_files_path()
+            list_ruta_archivos = []
+            for categoria in categorias:                                
+                respuesta = descargar_archivo(categoria)
+                datapath = guardar_archivo(respuesta, categoria["name"])
+                list_ruta_archivos.append(datapath)
 
-            for ruta_archivo in dict_ruta_archivos:
+            #dict_ruta_archivos = get_last_files_path()
+
+            for ruta_archivo in list_ruta_archivos:
                 if ruta_archivo['categoria'] in ('bibliotecas','museos'):
                     if ruta_archivo['categoria'] == 'museos':
                         dict_cast = {'cod_area': 'object'}                        
